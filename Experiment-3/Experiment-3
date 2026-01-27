@@ -1,0 +1,45 @@
+//24BCS10980- VISHAL KUMAR SINGH
+
+#include<bits/stdc++.h>
+using namespace std;
+
+int maxwindow(int n,string attendance) {
+    unordered_map<int,int> mp;
+    mp[0] = -1;
+    int sum = 0;
+    int maxLength = 0;
+    
+    for(int i=0; i<n; i++) {
+        if(attendance[i]=='P') {
+            sum += 1;
+        }else {
+           sum -= 1;
+        }
+        
+        if(mp.find(sum)!= mp.end()){
+            int length = i-mp[sum];
+            maxLength=max(maxLength,length);
+        } else{
+            mp[sum]= i;
+        }
+    }
+    
+    return maxLength;
+}
+
+int main(){
+    int n;
+    cin>>n;
+    
+    string attendance= "";
+    for(int i=0;i<n;i++) {
+        char status;
+        cin>>status;
+        attendance += status;
+    }
+    
+    int result=maxwindow(n,attendance);
+    cout<<result<<endl;
+    
+    return 0;
+}
