@@ -1,0 +1,108 @@
+# ============================================================
+# docker-compose.yml — Job Scheduling System
+# ============================================================
+# Starts THREE containers:
+#
+#   1. mysql    → MySQL 8 database          (port 3306)
+#   2. backend  → Spring Boot REST API      (port 8080)
+#   3. frontend → Nginx serving HTML/JS/CSS (port 80)
+#
+# Networks:
+#   All containers share "app-network" so they can talk
+#   to each other by service name (e.g., "mysql", "backend").
+#
+# Volumes:
+#   mysql-data persists your database across container restarts.
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ── 1. MySQL Database ──────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: job-scheduler-mysql
+
+    # Load credentials from .env file
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE}
+      MYSQL_USER:          ${MYSQL_USER}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD}
+
+    ports:
+      - "3306:3306"        # Expose so you can connect via MySQL Workbench
+
+    volumes:
+      - mysql-data:/var/lib/mysql   # Persist data across restarts
+
+    networks:
+      - app-network
+
+    # Health check: backend waits until MySQL is actually ready
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── 2. Spring Boot Backend ─────────────────────────────────
+  backend:
+    build:
+      context: ./backend      # Docker builds from backend/Dockerfile
+      dockerfile: Dockerfile
+
+    container_name: job-scheduler-backend
+
+    # Pass DB connection info as environment variables
+    # These override values in application.properties
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+    ports:
+      - "8080:8080"
+
+    networks:
+      - app-network
+
+    # Don't start until MySQL is healthy
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    # Auto-restart if it crashes (e.g., DB not ready yet)
+    restart: on-failure
+
+  # ── 3. Nginx Frontend ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend     # Docker builds from frontend/Dockerfile
+      dockerfile: Dockerfile
+
+    container_name: job-scheduler-frontend
+
+    ports:
+      - "80:80"               # Access at http://localhost
+
+    networks:
+      - app-network
+
+    # Wait for backend to be up before starting
+    depends_on:
+      - backend
+
+# ── Named Volumes ──────────────────────────────────────────
+volumes:
+  mysql-data:
+    driver: local
+
+# ── Networks ───────────────────────────────────────────────
+networks:
+  app-network:
+    driver: bridge

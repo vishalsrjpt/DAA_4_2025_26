@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Scheduling System — DAA Project</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Google Fonts: Syne (display) + DM Mono (code/data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+    <!-- ─── HEADER ─────────────────────────────────── -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-badge">DAA PROJECT</div>
+            <h1 class="header-title">Job Scheduling System</h1>
+            <p class="header-sub">Greedy Algorithm · Job Sequencing with Deadlines · O(n log n)</p>
+        </div>
+        <div class="header-tag">
+            <span>Priority Queue · Max Heap · Greedy vs Brute Force</span>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- ─── ROW 1: ADD JOB + JOB LIST ──────────── -->
+        <div class="row">
+
+            <!-- ADD JOB PANEL -->
+            <section class="panel" id="add-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">＋</span>
+                    <h2>Add Job</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="jobId">Job ID</label>
+                    <input type="text" id="jobId" placeholder="e.g. J1, TaskA, J-01" />
+                </div>
+
+                <div class="form-group">
+                    <label for="deadline">
+                        Deadline
+                        <span class="label-hint">(time slot, min 1)</span>
+                    </label>
+                    <input type="number" id="deadline" placeholder="e.g. 2" min="1" />
+                </div>
+
+                <div class="form-group">
+                    <label for="profit">
+                        Profit
+                        <span class="label-hint">(must be &gt; 0)</span>
+                    </label>
+                    <input type="number" id="profit" placeholder="e.g. 100" min="1" />
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addJob()">
+                        Add Job
+                    </button>
+                    <button class="btn btn-danger" onclick="resetJobs()">
+                        Reset All
+                    </button>
+                </div>
+
+                <div id="add-msg" class="message hidden"></div>
+
+                <!-- Algorithm Info Box -->
+                <div class="algo-info">
+                    <div class="algo-info-title">Algorithm Info</div>
+                    <div class="algo-info-row">
+                        <span class="algo-badge greedy">Greedy</span>
+                        <span class="mono">O(n log n)</span>
+                    </div>
+                    <div class="algo-info-row">
+                        <span class="algo-badge brute">Brute Force</span>
+                        <span class="mono">O(2ⁿ × n)</span>
+                    </div>
+                    <p class="algo-info-note">
+                        Greedy uses a <strong>Max Heap</strong> (Priority Queue) to always
+                        pick the highest-profit job first, then assigns it to the
+                        latest available slot ≤ its deadline.
+                    </p>
+                </div>
+            </section>
+
+            <!-- JOB LIST PANEL -->
+            <section class="panel panel-wide" id="jobs-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">≡</span>
+                    <h2>All Jobs</h2>
+                    <span class="job-count" id="job-count">0 jobs</span>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="jobs-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Job ID</th>
+                                <th>Deadline</th>
+                                <th>Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-tbody">
+                            <tr class="empty-row">
+                                <td colspan="4">No jobs added yet. Add some jobs to get started.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="btn btn-accent full-width" onclick="runSchedule()" id="schedule-btn">
+                    ▶ Run Scheduling Algorithms
+                </button>
+            </section>
+
+        </div><!-- end row -->
+
+        <!-- ─── LOADING INDICATOR ───────────────────── -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>Running algorithms...</span>
+        </div>
+
+        <!-- ─── ROW 2: RESULTS ──────────────────────── -->
+        <div id="results-section" class="hidden">
+
+            <!-- STAT CARDS -->
+            <div class="stats-row" id="stats-cards">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- COMPARISON HEADER -->
+            <div class="comparison-header">
+                <h2>Algorithm Comparison</h2>
+                <p>Both algorithms should yield the same maximum profit. Greedy is significantly faster.</p>
+            </div>
+
+            <!-- RESULTS GRID -->
+            <div class="results-grid">
+
+                <!-- GREEDY RESULTS -->
+                <div class="result-card greedy-card">
+                    <div class="result-card-header greedy-header">
+                        <div>
+                            <div class="result-card-title">Greedy Algorithm</div>
+                            <div class="result-card-complexity mono">Time Complexity: O(n log n)</div>
+                        </div>
+                        <div class="result-badge" id="greedy-profit-badge">₹0</div>
+                    </div>
+
+                    <div class="result-section">
+                        <div class="result-section-label">
+                            <span class="dot dot-green"></span>
+                            Scheduled Jobs
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Job ID</th><th>Deadline</th><th>Profit</th></tr>
+                                </thead>
+                                <tbody id="greedy-scheduled-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="result-section">
+                        <div class="result-section-label">
+                            <span class="dot dot-red"></span>
+                            Rejected Jobs
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Job ID</th><th>Deadline</th><th>Profit</th></tr>
+                                </thead>
+                                <tbody id="greedy-rejected-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="exec-time" id="greedy-time"></div>
+                </div>
+
+                <!-- BRUTE FORCE RESULTS -->
+                <div class="result-card brute-card">
+                    <div class="result-card-header brute-header">
+                        <div>
+                            <div class="result-card-title">Brute Force</div>
+                            <div class="result-card-complexity mono">Time Complexity: O(2ⁿ × n)</div>
+                        </div>
+                        <div class="result-badge" id="brute-profit-badge">₹0</div>
+                    </div>
+
+                    <div class="result-section">
+                        <div class="result-section-label">
+                            <span class="dot dot-green"></span>
+                            Scheduled Jobs
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Job ID</th><th>Deadline</th><th>Profit</th></tr>
+                                </thead>
+                                <tbody id="brute-scheduled-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="result-section">
+                        <div class="result-section-label">
+                            <span class="dot dot-red"></span>
+                            Rejected Jobs
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Job ID</th><th>Deadline</th><th>Profit</th></tr>
+                                </thead>
+                                <tbody id="brute-rejected-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="exec-time" id="brute-time"></div>
+                </div>
+
+            </div><!-- end results-grid -->
+
+            <!-- VERDICT -->
+            <div class="verdict" id="verdict-box">
+                <!-- Filled by JS -->
+            </div>
+
+        </div><!-- end results-section -->
+
+    </main>
+
+    <!-- ─── FOOTER ──────────────────────────────────── -->
+    <footer class="footer">
+        <p>DAA Class Project · Job Sequencing with Deadlines · Greedy Algorithm</p>
+        <p class="mono">Spring Boot + MySQL + Vanilla JS</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
